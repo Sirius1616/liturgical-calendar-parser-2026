@@ -1,7 +1,6 @@
 @echo off
-echo ==========================================
-echo Running 2026 Calendar Data Extraction
-echo ==========================================
-python src\build_datasets.py
+echo Running build_datasets...
+python src\build_datasets.py --input input\USCCB_2026_Feast_Calendar_CLEAN.pdf --out data
+echo Running validation...
 python src\validate.py
 pause
