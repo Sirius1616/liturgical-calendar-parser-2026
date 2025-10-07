@@ -28,4 +28,4 @@ SCHEMAS = {
         },
         "required": ["WeekNumber", "StartDate", "EndDate"]
     },
-
+}
