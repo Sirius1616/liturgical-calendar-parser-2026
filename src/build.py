@@ -5,6 +5,8 @@ from pathlib import Path
 from datetime import datetime, timedelta
 import calendar
 import pdfplumber
+import subprocess
+
 
 # ----------------------------
 # Helpers
@@ -228,7 +230,143 @@ def generate_weekly_index(day_rows, out_dir):
     print(f"Completed: {len(weekly_index)} rows written to {output_csv}")
 
 
-    
+
+# ----------------------------
+# Bible Citations Extraction
+# ----------------------------
+def extract_bible_citation(text):
+    """Extract short Bible citation from a line"""
+    pattern = r"\b(?:[1-3]?\s?[A-Za-z]+)\s\d{1,3}:\d{1,3}(?:–\d{1,3})?(?:;\s?[1-3]?\s?[A-Za-z]+\s\d{1,3}:\d{1,3}(?:–\d{1,3})?)*"
+    match = re.search(pattern, text)
+    if match:
+        return match.group(0)
+    return ""
+
+
+def parse_bible_citations(pdf_file, year, out_dir):
+    """Parse Bible citations from the liturgical calendar PDF"""
+    out_dir = Path(out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    output_csv = out_dir / "daily_bible_citations_2026.csv"
+
+    MONTHS = {name.lower(): i for i, name in enumerate(calendar.month_name) if name}
+    output_rows = []
+    current_month = None
+
+    with pdfplumber.open(pdf_file) as pdf:
+        for page_num, page in enumerate(pdf.pages, start=1):
+            text = page.extract_text()
+            if not text:
+                continue
+            lines = text.split("\n")
+
+            for line in lines:
+                line = line.strip()
+                if not line:
+                    continue
+
+                # Detect month header
+                for month_name, month_num in MONTHS.items():
+                    if month_name in line.lower():
+                        current_month = month_num
+                        break
+                if current_month is None:
+                    continue
+
+                # Detect date line (e.g., "1 Tue" or "12 Fri")
+                m = re.match(r"^(\d{1,2})\s+\w{3}", line)
+                if not m:
+                    continue
+                day_num = int(m.group(1))
+
+                try:
+                    date_obj = datetime(year, current_month, day_num)
+                except ValueError:
+                    continue  # skip invalid dates
+
+                # Extract Bible citation
+                citation = extract_bible_citation(line)
+                if citation:
+                    row = {
+                        "Date": date_obj.strftime("%Y-%m-%d"),
+                        "BibleCitationShort": citation,
+                        "SourceLine": line
+                    }
+                    output_rows.append(row)
+
+    # Write CSV
+    fieldnames = ["Date", "BibleCitationShort", "SourceLine"]
+    with open(output_csv, "w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(output_rows)
+
+    print(f"Completed: {len(output_rows)} rows written to {output_csv}")
+
+
+def parse_us_holidays(pdf_file, year, out_dir):
+    """
+    Extract US holidays from the PDF and write to CSV.
+    """
+    US_HOLIDAYS = {
+        "New Year’s Day": f"{year}-01-01",
+        "Martin Luther King Jr. Day": f"{year}-01-19",
+        "Washington’s Birthday": f"{year}-02-16",
+        "Memorial Day": f"{year}-05-25",
+        "Independence Day": f"{year}-07-04",
+        "Labor Day": f"{year}-09-07",
+        "Columbus Day": f"{year}-10-12",
+        "Veterans Day": f"{year}-11-11",
+        "Thanksgiving Day": f"{year}-11-26",
+        "Christmas Day": f"{year}-12-25",
+    }
+
+    out_dir = Path(out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    output_csv = out_dir / f"us_holidays_{year}.csv"
+
+    found = []
+    with pdfplumber.open(pdf_file) as pdf:
+        for i, page in enumerate(pdf.pages, start=1):
+            text = page.extract_text()
+            if not text:
+                continue
+            for holiday, fixed_date in US_HOLIDAYS.items():
+                if holiday in text:
+                    for line in text.splitlines():
+                        if holiday in line:
+                            date_match = re.search(r"(\d{1,2}/\d{1,2}/\d{4})", line)
+                            if date_match:
+                                date_str = date_match.group(1)
+                                date = datetime.strptime(date_str, "%m/%d/%Y").strftime("%Y-%m-%d")
+                            else:
+                                date = fixed_date
+                            found.append({
+                                "Date": date,
+                                "HolidayName": holiday,
+                                "IsFederalHoliday": 1
+                            })
+
+    # Write CSV
+    fieldnames = ["Date", "HolidayName", "IsFederalHoliday"]
+    with open(output_csv, "w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(found)
+
+    print(f"Completed: {len(found)} holidays written to {output_csv}")
+    return found
+
+
+def main():
+    # your existing build steps ...
+    print("✅ Build completed. Running validation...")
+
+    # Run validate.py after build
+    subprocess.run(["python", "src/validate.py"], check=True)
+
+    print("✅ Validation complete. QC report generated in reports/qc_2026.md")
+
 
 # ----------------------------
 # CLI
@@ -243,3 +381,13 @@ if __name__ == "__main__":
     day_rows = parse_day_data(args.input_pdf, args.year, args.out)
     generate_year_at_a_glance(day_rows, args.out)
     generate_weekly_index(day_rows, args.out)
+
+    # Always generate Bible citations too
+    parse_bible_citations(args.input_pdf, args.year, args.out)
+
+    # Always generate US holidays too
+    parse_us_holidays(args.input_pdf, args.year, args.out)
+    main()
+
+
+
