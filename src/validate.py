@@ -2,7 +2,7 @@
 import csv
 from pathlib import Path
 from datetime import datetime
-from schema import SCHEMAS
+from .schema import SCHEMAS
 
 QC_REPORT = Path("reports/qc_2026.md")
 
