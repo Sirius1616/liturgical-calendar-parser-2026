@@ -72,5 +72,5 @@ def main():
 
     print(f"QC report written to {QC_REPORT}")
 
-if __name__ == "__main__"
+if __name__ == "__main__":
     main()
