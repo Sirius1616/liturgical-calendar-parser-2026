@@ -89,7 +89,7 @@ liturgical-calendar-parser-2026/
 
 4. **Install dependencies**:
    ```bash
-   pip install -r requirements.txt
+   pip install -r requirements.tx
    ```
 
 5. **Place the PDF**:
