@@ -1,11 +1,12 @@
-import argparse
+
 import re
 import csv
+import argparse
+import calendar
+import subprocess
+import pdfplumber
 from pathlib import Path
 from datetime import datetime, timedelta
-import calendar
-import pdfplumber
-import subprocess
 from utils.parsers import (is_first_friday, is_first_saturday,
                             parse_feast_rank, extract_color,
                             extract_bible_citation
