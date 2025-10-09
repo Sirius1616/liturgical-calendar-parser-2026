@@ -358,15 +358,6 @@ def parse_us_holidays(pdf_file, year, out_dir):
     return found
 
 
-def main():
-    # your existing build steps ...
-    print("✅ Build completed. Running validation...")
-
-    # Run validate.py after build
-    subprocess.run(["python", "src/validate.py"], check=True)
-
-    print("✅ Validation complete. QC report generated in reports/qc_2026.md")
-
 
 # ----------------------------
 # CLI
@@ -387,7 +378,7 @@ if __name__ == "__main__":
 
     # Always generate US holidays too
     parse_us_holidays(args.input_pdf, args.year, args.out)
-    main()
+
 
 
 
