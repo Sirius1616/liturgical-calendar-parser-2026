@@ -359,7 +359,3 @@ if __name__ == "__main__":
 
     # Always generate US holidays too
     parse_us_holidays(args.input_pdf, args.year, args.out)
-
-
-
-
