@@ -30,21 +30,26 @@ def validate_csv(file_path, schema):
         headers = reader.fieldnames
 
         # ✅ Check required fields
-        for req in schema["required"]:
+        for req in schema.get("required", []):
             if req not in headers:
-                errors.append(f"Missing required field: {req}")
+                errors.append(f"Missing required column: {req}")
 
         # ✅ Row checks
         for i, row in enumerate(reader, start=2):  # row 2 = first data row
             for field, expected in schema["fields"].items():
                 val = row.get(field, "")
+
                 if not val:
-                    if field in schema["required"]:
+                    # only complain if it's required
+                    if field in schema.get("required", []):
                         errors.append(f"Row {i}: Missing value for {field}")
                     continue
+
                 if not check_type(val, expected):
                     errors.append(f"Row {i}: Invalid {field}='{val}' (expected {expected})")
+
     return errors
+
 
 def main():
     report_lines = ["# QC Report for 2026 CSVs", ""]

@@ -27,22 +27,35 @@ This project processes the United States Conference of Catholic Bishops' 2026 li
 
 ```
 liturgical-calendar-parser-2026/
-├── data/                       # Raw and parsed data files
-│   ├── calendar_2026.csv       # Parsed CSV output
-│   └── calendar_2026.json      # Parsed JSON output
-├── reports/                    # Generated reports and exports
-├── src/
+├── data/                          # Raw and processed CSV/PDF files
+│   ├── USCCB_2026_Feast_Calendar_CLEAN.pdf
+│   ├── .....
+│   ├──
+│   ├──
+│   └── feasts.csv
+│
+├── reports/                       # Outputs and logs
+│   └── qc_2026.md
+│
+├── src/                           # Core source code
 │   ├── __init__.py
-│   ├── build.py                # Main builder/orchestrator
-│   ├── validate.py             # Data validation module
-│   ├── schema.py               # Field definitions and rules
-│   └── utils/
-│       ├── parse_pdf.py        # PDF extraction utilities
-│       ├── parse_day.py        # Day entry parser
-│       └── helpers.py          # Helper functions
-├── requirements.txt            # Python dependencies
-└── README.md                   # This file
-```
+│   ├── build.py                   # Build pipeline (parsing → reports)
+│   ├── validate.py                # Validation logic
+│   ├── schema.py                  # Schema definitions for CSV files
+│   └── utils/                     # Helper functions
+│       ├── __init__.py
+│       └── parse_pdf.py           # Extract tables/text from PDF
+│
+├── tests/                         # Unit and integration tests
+│   ├── test_schema.py
+│   ├── test_validate.py
+│   └── test_parse_pdf.py
+│
+├── venv/                          # Local Python virtual environment (gitignored)
+│
+├── requirements.txt               # Python dependencies
+└── README.md                      # Project overview + usage
+
 
 ## ⚙️ Installation
 
@@ -55,7 +68,7 @@ liturgical-calendar-parser-2026/
 
 1. **Clone the repository**:
    ```bash
-   git clone https://github.com/<your-username>/liturgical-calendar-parser-2026.git
+   git clone https://github.com/Sirius1616/liturgical-calendar-parser-2026.git
    cd liturgical-calendar-parser-2026
    ```
 
@@ -129,23 +142,6 @@ python src/build.py --validate
 | 2026-01-02 | Basil the Great and Gregory Nazianzen | Memorial | white | 0 | | 1 | 0 |
 | 2026-01-06 | Epiphany of the Lord | Solemnity | white | 0 | | 0 | 0 |
 
-### JSON Sample
-
-```json
-{
-  "2026-01-01": {
-    "date": "2026-01-01",
-    "feast_primary_name": "Mary, Mother of God",
-    "feast_rank": "Solemnity",
-    "liturgical_color": "white",
-    "is_holy_day_of_obligation": true,
-    "us_holiday_name": "New Year's Day",
-    "is_first_friday": false,
-    "is_first_saturday": false,
-    "source_page": 13
-  }
-}
-```
 
 ## 🛠 Dependencies
 
@@ -203,7 +199,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 For questions, suggestions, or issues:
 - Open an issue on GitHub
-- Email: [your-email@example.com]
+- Email: siriusa1.615@gmail.com
 
 ## ⚖️ Disclaimer
 
