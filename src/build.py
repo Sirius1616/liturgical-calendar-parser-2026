@@ -8,7 +8,7 @@ import pdfplumber
 import subprocess
 from utils.parsers import (is_first_friday, is_first_saturday,
                             parse_feast_rank, extract_color,
-                            extract_bible_citation,
+                            extract_bible_citation
                             )
 
 # ----------------------------
