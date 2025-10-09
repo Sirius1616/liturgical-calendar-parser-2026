@@ -6,30 +6,10 @@ from datetime import datetime, timedelta
 import calendar
 import pdfplumber
 import subprocess
-
-
-# ----------------------------
-# Helpers
-# ----------------------------
-def is_first_friday(date_obj):
-    return date_obj.weekday() == 4 and date_obj.day <= 7
-
-def is_first_saturday(date_obj):
-    return date_obj.weekday() == 5 and date_obj.day <= 7
-
-def parse_feast_rank(text):
-    for rank in ["Solemnity", "Feast", "Memorial", "Optional Memorial", "Weekday", "Sunday"]:
-        if rank.lower() in text.lower():
-            return rank
-    return ""
-
-def extract_color(text):
-    pattern = r"(Green|White|Violet|Red|Rose)(\s*/\s*(Green|White|Violet|Red|Rose))?"
-    m = re.search(pattern, text, re.IGNORECASE)
-    if m:
-        color = m.group(0).title().replace(" ", "")
-        return color
-    return ""
+from utils.parsers import (is_first_friday, is_first_saturday,
+                            parse_feast_rank, extract_color,
+                            extract_bible_citation
+                            )
 
 # ----------------------------
 # DAY_DATA parser
