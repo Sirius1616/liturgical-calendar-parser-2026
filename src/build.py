@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from src.utils.daily_bible_citation import extract_daily_bible_citations
 
 
-# -------------------- HELPER FUNCTIONS -------------------- #
+# -------------------- HELPER FUNCTIONS -------------------- 
 
 def next_month_name(current):
     months = [
