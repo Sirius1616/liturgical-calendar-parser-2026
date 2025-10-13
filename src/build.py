@@ -368,27 +368,67 @@ def generate_weekly_index(day_data, output_csv):
 
 # -------------------- DAILY BIBLE CITATIONS -------------------- #
 
-def extract_daily_bible_citations(pdf_path: Path, output_csv: Path, year=2026):
+def extract_daily_bible_citations(pdf_path: Path, output_csv: Path, year: int = 2026):
+    """
+    Extract daily Bible citations from the PDF.
+    Ensures each row has the correct date (YYYY-MM-DD) and one row per citation.
+    """
     citations = []
-    with pdfplumber.open(pdf_path) as pdf:
-        for page_num in range(13, len(pdf.pages)):
-            page = pdf.pages[page_num]
-            for line in page.extract_text().splitlines():
-                line = line.strip()
-                # Detect Bible citation
-                match = re.search(r"([A-Z][a-z]{0,2}\s\d{1,3}:\d{1,2}(?:–\d{1,2})?)", line)
-                if match:
-                    # Attempt to infer date from page number
-                    # Assuming each page corresponds roughly to day sequence
-                    date_obj = datetime(year, 1, 1) + timedelta(days=(page_num-13))
-                    date_str = date_obj.strftime("%Y-%m-%d")
-                    citations.append([date_str, match.group(1), line])
+    current_date = None
 
+    # Month names for parsing
+    months = [
+        "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December"
+    ]
+
+    with pdfplumber.open(pdf_path) as pdf:
+        for page_num in range(12, len(pdf.pages)):  # starting page 13 (0-indexed)
+            page = pdf.pages[page_num]
+            text = page.extract_text()
+            if not text:
+                continue
+            lines = [line.strip() for line in text.splitlines() if line.strip()]
+
+            for line in lines:
+                # Detect a new date in the format "Jan 1", "Feb 3", etc.
+                date_match = re.match(rf"^({'|'.join(months)})\s+(\d{{1,2}})", line, re.IGNORECASE)
+                if date_match:
+                    month_name, day = date_match.groups()
+                    month_num = months.index(month_name.capitalize()) + 1
+                    current_date = datetime(year, month_num, int(day)).strftime("%Y-%m-%d")
+                    # Continue because the same line may also contain citations
+                    line = line[date_match.end():].strip()
+
+                if not current_date:
+                    continue  # skip until first date found
+
+                # Extract all Bible citations in this line
+                matches = re.findall(r"[1-3]?\s?[A-Z][a-z]{0,2}\s\d{1,3}:\d{1,2}(?:[-–]\d{1,2})?", line)
+                for citation in matches:
+                    # Replace EN DASH with regular dash
+                    citation = citation.replace("–", "-")
+                    citations.append([current_date, citation, line])
+
+    # Ensure all 365 dates are represented (even if no citation)
+    all_dates = [datetime(year, 1, 1) + timedelta(days=i) for i in range(365)]
+    existing_dates = {c[0] for c in citations}
+    for date_obj in all_dates:
+        date_str = date_obj.strftime("%Y-%m-%d")
+        if date_str not in existing_dates:
+            citations.append([date_str, "", ""])
+
+    # Sort by date
+    citations.sort(key=lambda x: x[0])
+
+    # Write to CSV
     with open(output_csv, "w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
         writer.writerow(["Date", "BibleCitationShort", "SourceLine"])
         writer.writerows(citations)
+
     print(f"✅ Daily Bible citations saved: {output_csv}")
+
 
 # -------------------- US HOLIDAYS -------------------- #
 
