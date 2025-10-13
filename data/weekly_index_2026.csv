@@ -1,49 +1,54 @@
 WeekStart,WeekEnd,WeekLabel,LiturgicalWeekLabel,Season,MonthForMiniCal,WeekNumberInYear
-2025-12-29,2026-01-04,Week of Dec 29–4,1st Week of Christmas,Christmas,2025-12,1
-2026-01-05,2026-01-11,Week of Jan 5–11,2nd Week of Christmas,Christmas,2026-01,2
-2026-01-12,2026-01-18,Week of Jan 12–18,1st Week of Ordinary Time,Ordinary Time,2026-01,3
-2026-01-19,2026-01-25,Week of Jan 19–25,2nd Week of Ordinary Time,Ordinary Time,2026-01,4
-2026-01-26,2026-02-01,Week of Jan 26–1,3rd Week of Ordinary Time,Ordinary Time,2026-01,5
-2026-02-02,2026-02-08,Week of Feb 2–8,4th Week of Ordinary Time,Ordinary Time,2026-02,6
-2026-02-09,2026-02-15,Week of Feb 9–15,5th Week of Ordinary Time,Ordinary Time,2026-02,7
-2026-02-16,2026-02-22,Week of Feb 16–22,6th Week of Ordinary Time,Ordinary Time,2026-02,8
-2026-02-23,2026-03-01,Week of Feb 23–1,1st Week of Lent,Lent,2026-02,9
-2026-03-02,2026-03-08,Week of Mar 2–8,2nd Week of Lent,Lent,2026-03,10
-2026-03-09,2026-03-15,Week of Mar 9–15,3rd Week of Lent,Lent,2026-03,11
-2026-03-16,2026-03-22,Week of Mar 16–22,4th Week of Lent,Lent,2026-03,12
-2026-03-30,2026-04-05,Week of Mar 30–5,5th Week of Lent,Lent,2026-03,14
-2026-04-06,2026-04-12,Week of Apr 6–12,1st Week of Easter,Easter,2026-04,15
-2026-04-27,2026-05-03,Week of Apr 27–3,2nd Week of Easter,Easter,2026-04,18
-2026-05-04,2026-05-10,Week of May 4–10,3rd Week of Easter,Easter,2026-05,19
-2026-05-11,2026-05-17,Week of May 11–17,4th Week of Easter,Easter,2026-05,20
-2026-05-18,2026-05-24,Week of May 18–24,5th Week of Easter,Easter,2026-05,21
-2026-05-25,2026-05-31,Week of May 25–31,7th Week of Ordinary Time,Ordinary Time,2026-05,22
-2026-06-01,2026-06-07,Week of Jun 1–7,8th Week of Ordinary Time,Ordinary Time,2026-06,23
-2026-06-08,2026-06-14,Week of Jun 8–14,9th Week of Ordinary Time,Ordinary Time,2026-06,24
-2026-06-15,2026-06-21,Week of Jun 15–21,10th Week of Ordinary Time,Ordinary Time,2026-06,25
-2026-06-22,2026-06-28,Week of Jun 22–28,11th Week of Ordinary Time,Ordinary Time,2026-06,26
-2026-06-29,2026-07-05,Week of Jun 29–5,12th Week of Ordinary Time,Ordinary Time,2026-06,27
-2026-07-06,2026-07-12,Week of Jul 6–12,13th Week of Ordinary Time,Ordinary Time,2026-07,28
-2026-07-27,2026-08-02,Week of Jul 27–2,14th Week of Ordinary Time,Ordinary Time,2026-07,31
-2026-08-03,2026-08-09,Week of Aug 3–9,15th Week of Ordinary Time,Ordinary Time,2026-08,32
-2026-08-10,2026-08-16,Week of Aug 10–16,16th Week of Ordinary Time,Ordinary Time,2026-08,33
-2026-08-17,2026-08-23,Week of Aug 17–23,17th Week of Ordinary Time,Ordinary Time,2026-08,34
-2026-08-24,2026-08-30,Week of Aug 24–30,18th Week of Ordinary Time,Ordinary Time,2026-08,35
-2026-08-31,2026-09-06,Week of Aug 31–6,19th Week of Ordinary Time,Ordinary Time,2026-08,36
-2026-09-07,2026-09-13,Week of Sep 7–13,20th Week of Ordinary Time,Ordinary Time,2026-09,37
-2026-09-14,2026-09-20,Week of Sep 14–20,21th Week of Ordinary Time,Ordinary Time,2026-09,38
-2026-09-21,2026-09-27,Week of Sep 21–27,22th Week of Ordinary Time,Ordinary Time,2026-09,39
-2026-09-28,2026-10-04,Week of Sep 28–4,23th Week of Ordinary Time,Ordinary Time,2026-09,40
-2026-10-05,2026-10-11,Week of Oct 5–11,24th Week of Ordinary Time,Ordinary Time,2026-10,41
-2026-10-12,2026-10-18,Week of Oct 12–18,25th Week of Ordinary Time,Ordinary Time,2026-10,42
-2026-10-19,2026-10-25,Week of Oct 19–25,26th Week of Ordinary Time,Ordinary Time,2026-10,43
-2026-10-26,2026-11-01,Week of Oct 26–1,27th Week of Ordinary Time,Ordinary Time,2026-10,44
-2026-11-02,2026-11-08,Week of Nov 2–8,28th Week of Ordinary Time,Ordinary Time,2026-11,45
-2026-11-09,2026-11-15,Week of Nov 9–15,29th Week of Ordinary Time,Ordinary Time,2026-11,46
-2026-11-16,2026-11-22,Week of Nov 16–22,30th Week of Ordinary Time,Ordinary Time,2026-11,47
-2026-11-23,2026-11-29,Week of Nov 23–29,31th Week of Ordinary Time,Ordinary Time,2026-11,48
-2026-11-30,2026-12-06,Week of Nov 30–6,1st Week of Advent,Advent,2026-11,49
-2026-12-07,2026-12-13,Week of Dec 7–13,2nd Week of Advent,Advent,2026-12,50
-2026-12-14,2026-12-20,Week of Dec 14–20,3rd Week of Advent,Advent,2026-12,51
-2026-12-21,2026-12-27,Week of Dec 21–27,4th Week of Advent,Advent,2026-12,52
-2026-12-28,2027-01-03,Week of Dec 28–3,32th Week of Ordinary Time,Ordinary Time,2026-12,53
+2025-12-29,2026-01-04,Week of Dec 29-Jan 04,Week 1 of Ordinary Time,Ordinary Time,2025-12,1
+2026-01-05,2026-01-11,Week of Jan 05-Jan 11,Week 2 of Ordinary Time,Ordinary Time,2026-01,2
+2026-01-12,2026-01-18,Week of Jan 12-Jan 18,Week 3 of Ordinary Time,Ordinary Time,2026-01,3
+2026-01-19,2026-01-25,Week of Jan 19-Jan 25,Week 4 of Ordinary Time,Ordinary Time,2026-01,4
+2026-01-26,2026-02-01,Week of Jan 26-Feb 01,Week 5 of Ordinary Time,Ordinary Time,2026-01,5
+2026-02-02,2026-02-08,Week of Feb 02-Feb 08,Week 6 of Ordinary Time,Ordinary Time,2026-02,6
+2026-02-09,2026-02-15,Week of Feb 09-Feb 15,Week 7 of Ordinary Time,Ordinary Time,2026-02,7
+2026-02-16,2026-02-22,Week of Feb 16-Feb 22,Week 8 of Ordinary Time,Ordinary Time,2026-02,8
+2026-02-23,2026-03-01,Week of Feb 23-Mar 01,Week 1 of Lent,Lent,2026-02,9
+2026-03-02,2026-03-08,Week of Mar 02-Mar 08,Week 2 of Lent,Lent,2026-03,10
+2026-03-09,2026-03-15,Week of Mar 09-Mar 15,Week 3 of Lent,Lent,2026-03,11
+2026-03-16,2026-03-22,Week of Mar 16-Mar 22,Week 4 of Lent,Lent,2026-03,12
+2026-03-23,2026-03-29,Week of Mar 23-Mar 29,Week 5 of Lent,Lent,2026-03,13
+2026-03-30,2026-04-05,Week of Mar 30-Apr 05,Week 6 of Lent,Lent,2026-03,14
+2026-04-06,2026-04-12,Week of Apr 06-Apr 12,Week 1 of Easter,Easter,2026-04,15
+2026-04-13,2026-04-19,Week of Apr 13-Apr 19,Week 2 of Easter,Easter,2026-04,16
+2026-04-20,2026-04-26,Week of Apr 20-Apr 26,Week 3 of Easter,Easter,2026-04,17
+2026-04-27,2026-05-03,Week of Apr 27-May 03,Week 4 of Easter,Easter,2026-04,18
+2026-05-04,2026-05-10,Week of May 04-May 10,Week 5 of Easter,Easter,2026-05,19
+2026-05-11,2026-05-17,Week of May 11-May 17,Week 6 of Easter,Easter,2026-05,20
+2026-05-18,2026-05-24,Week of May 18-May 24,Week 7 of Easter,Easter,2026-05,21
+2026-05-25,2026-05-31,Week of May 25-May 31,Week 9 of Ordinary Time,Ordinary Time,2026-05,22
+2026-06-01,2026-06-07,Week of Jun 01-Jun 07,Week 10 of Ordinary Time,Ordinary Time,2026-06,23
+2026-06-08,2026-06-14,Week of Jun 08-Jun 14,Week 11 of Ordinary Time,Ordinary Time,2026-06,24
+2026-06-15,2026-06-21,Week of Jun 15-Jun 21,Week 12 of Ordinary Time,Ordinary Time,2026-06,25
+2026-06-22,2026-06-28,Week of Jun 22-Jun 28,Week 13 of Ordinary Time,Ordinary Time,2026-06,26
+2026-06-29,2026-07-05,Week of Jun 29-Jul 05,Week 14 of Ordinary Time,Ordinary Time,2026-06,27
+2026-07-06,2026-07-12,Week of Jul 06-Jul 12,Week 15 of Ordinary Time,Ordinary Time,2026-07,28
+2026-07-13,2026-07-19,Week of Jul 13-Jul 19,Week 16 of Ordinary Time,Ordinary Time,2026-07,29
+2026-07-20,2026-07-26,Week of Jul 20-Jul 26,Week 17 of Ordinary Time,Ordinary Time,2026-07,30
+2026-07-27,2026-08-02,Week of Jul 27-Aug 02,Week 18 of Ordinary Time,Ordinary Time,2026-07,31
+2026-08-03,2026-08-09,Week of Aug 03-Aug 09,Week 19 of Ordinary Time,Ordinary Time,2026-08,32
+2026-08-10,2026-08-16,Week of Aug 10-Aug 16,Week 20 of Ordinary Time,Ordinary Time,2026-08,33
+2026-08-17,2026-08-23,Week of Aug 17-Aug 23,Week 21 of Ordinary Time,Ordinary Time,2026-08,34
+2026-08-24,2026-08-30,Week of Aug 24-Aug 30,Week 22 of Ordinary Time,Ordinary Time,2026-08,35
+2026-08-31,2026-09-06,Week of Aug 31-Sep 06,Week 23 of Ordinary Time,Ordinary Time,2026-08,36
+2026-09-07,2026-09-13,Week of Sep 07-Sep 13,Week 24 of Ordinary Time,Ordinary Time,2026-09,37
+2026-09-14,2026-09-20,Week of Sep 14-Sep 20,Week 25 of Ordinary Time,Ordinary Time,2026-09,38
+2026-09-21,2026-09-27,Week of Sep 21-Sep 27,Week 26 of Ordinary Time,Ordinary Time,2026-09,39
+2026-09-28,2026-10-04,Week of Sep 28-Oct 04,Week 27 of Ordinary Time,Ordinary Time,2026-09,40
+2026-10-05,2026-10-11,Week of Oct 05-Oct 11,Week 28 of Ordinary Time,Ordinary Time,2026-10,41
+2026-10-12,2026-10-18,Week of Oct 12-Oct 18,Week 29 of Ordinary Time,Ordinary Time,2026-10,42
+2026-10-19,2026-10-25,Week of Oct 19-Oct 25,Week 30 of Ordinary Time,Ordinary Time,2026-10,43
+2026-10-26,2026-11-01,Week of Oct 26-Nov 01,Week 31 of Ordinary Time,Ordinary Time,2026-10,44
+2026-11-02,2026-11-08,Week of Nov 02-Nov 08,Week 32 of Ordinary Time,Ordinary Time,2026-11,45
+2026-11-09,2026-11-15,Week of Nov 09-Nov 15,Week 33 of Ordinary Time,Ordinary Time,2026-11,46
+2026-11-16,2026-11-22,Week of Nov 16-Nov 22,Week 34 of Ordinary Time,Ordinary Time,2026-11,47
+2026-11-23,2026-11-29,Week of Nov 23-Nov 29,Week 35 of Ordinary Time,Ordinary Time,2026-11,48
+2026-11-30,2026-12-06,Week of Nov 30-Dec 06,Week 1 of Advent,Advent,2026-11,49
+2026-12-07,2026-12-13,Week of Dec 07-Dec 13,Week 2 of Advent,Advent,2026-12,50
+2026-12-14,2026-12-20,Week of Dec 14-Dec 20,Week 3 of Advent,Advent,2026-12,51
+2026-12-21,2026-12-27,Week of Dec 21-Dec 27,Week 4 of Advent,Advent,2026-12,52
+2026-12-28,2027-01-03,Week of Dec 28-Jan 03,Week 1 of Christmas,Christmas,2026-12,53

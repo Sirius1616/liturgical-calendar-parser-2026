@@ -1,361 +1,435 @@
-
 import re
 import csv
 import argparse
-import calendar
-import subprocess
 import pdfplumber
 from pathlib import Path
 from datetime import datetime, timedelta
-from utils.parsers import (is_first_friday, is_first_saturday,
-                            parse_feast_rank, extract_color,
-                            extract_bible_citation
-                            )
 
-# ----------------------------
-# DAY_DATA parser
-# ----------------------------
-def parse_day_data(pdf_file, year, out_dir):
-    out_dir = Path(out_dir)
-    out_dir.mkdir(parents=True, exist_ok=True)
-    output_csv = out_dir / "DAY_DATA.csv"
+# -------------------- HELPER FUNCTIONS -------------------- #
 
-    MONTHS = {name.lower(): i for i, name in enumerate(calendar.month_name) if name}
-    HDO_2026 = ["2026-01-01"]  # Example, extend as per PDF
+def next_month_name(current):
+    months = [
+        "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December"
+    ]
+    try:
+        idx = months.index(current)
+        return months[(idx + 1) % 12]
+    except ValueError:
+        return current
 
-    output_rows = []
+def classify_feast(name):
+    name_lower = name.lower()
+    if "virgin mary" in name_lower or "our lady" in name_lower:
+        return "Marian Feasts"
+    elif any(x in name_lower for x in ["lord", "epiphany", "corpus christi", "christ"]):
+        return "Solemnities of the Lord"
+    else:
+        return "Major Saints"
 
-    with pdfplumber.open(pdf_file) as pdf:
-        current_month = None
-        week_row_counter = {}
+# -------------------- DAY DATA EXTRACTION -------------------- #
 
-        for page_num, page in enumerate(pdf.pages[12:], start=13):  # start at page 13
+def extract_day_data(pdf_path: Path, year: int = 2026, start_page: int = 12, end_page: int = None):
+    day_data = []
+    current_month = None
+    previous_day_num = 0
+    previous_date_obj = None
+
+    holy_days = {
+        "2026-01-01": "Mary, Mother of God",
+        "2026-05-14": "Ascension of the Lord",
+        "2026-08-15": "Assumption of the Blessed Virgin Mary",
+        "2026-11-01": "All Saints",
+        "2026-12-08": "Immaculate Conception",
+        "2026-12-25": "Christmas"
+    }
+
+    us_holidays = {
+        "2026-01-01": "New Year's Day",
+        "2026-07-04": "Independence Day",
+        "2026-11-26": "Thanksgiving Day",
+        "2026-12-25": "Christmas Day"
+    }
+
+    last_feast_name = ""
+    last_rank = ""
+    last_color = ""
+    last_is_holy_day = 0
+    last_us_holiday = ""
+    last_is_first_friday = 0
+    last_is_first_saturday = 0
+
+    with pdfplumber.open(pdf_path) as pdf:
+        if end_page is None:
+            end_page = len(pdf.pages)
+
+        for page_num in range(start_page, end_page):
+            page = pdf.pages[page_num]
             text = page.extract_text()
             if not text:
                 continue
-            lines = text.split("\n")
+            lines = [line.strip() for line in text.splitlines() if line.strip()]
+            if not lines:
+                continue
 
-            for line in lines:
-                line = line.strip()
-                if not line:
+            # Detect month at top
+            page_month = None
+            for line in lines[:5]:
+                month_match = re.search(
+                    r"\b(January|February|March|April|May|June|July|August|September|October|November|December)\b",
+                    line, re.IGNORECASE
+                )
+                if month_match:
+                    page_month = month_match.group(1).capitalize()
+                    break
+            if page_month:
+                current_month = page_month
+                print(f"📅 Page {page_num+1}: Detected month → {current_month}")
+
+            if not current_month:
+                continue
+
+            skip_rest_of_page = False
+
+            for i, line in enumerate(lines):
+                if re.match(r"^(?:[-=_]{3,})$", line.strip()):
+                    skip_rest_of_page = True
+                    break
+                if re.match(r"^(Notes?|Footnotes?)[:\s]*$", line.strip(), re.IGNORECASE):
+                    skip_rest_of_page = True
+                    break
+
+                # Match date + feast + color
+                match = re.match(
+                    r"^(\d{1,2})\s+(?:\w+\s+)?(.+?)\s+((?:white|red|green|violet|black|rose|gold)"
+                    r"(?:\s*(?:/|or)\s*(?:white|red|green|violet|black|rose|gold))*)$",
+                    line, re.IGNORECASE
+                )
+                if not match:
                     continue
 
-                # Detect month header
-                for month_name, month_num in MONTHS.items():
-                    if month_name in line.lower():
-                        current_month = month_num
-                        week_row_counter[current_month] = 1
-                        break
-                if current_month is None:
-                    continue
-
-                # Detect date line
-                m = re.match(r"^(\d{1,2})\s+(\w{3})\s+(.*)$", line)
-                if not m:
-                    continue
-                day_num, weekday_str, feast_text = m.groups()
+                day_num, feast, color = match.groups()
                 day_num = int(day_num)
+                rank = ""
 
-                color = extract_color(feast_text)
-                feast_text_clean = re.sub(re.escape(color), "", feast_text, flags=re.IGNORECASE).strip() if color else feast_text
-                rank = parse_feast_rank(feast_text_clean)
-                date_obj = datetime(year, current_month, day_num)
-                date_str = date_obj.strftime("%Y-%m-%d")
+                if i + 1 < len(lines):
+                    next_line = lines[i + 1]
+                    if re.search(r"(Feast|Memorial|Solemnity|Optional Memorial)", next_line, re.IGNORECASE):
+                        rank = next_line.strip()
 
-                first_friday = 1 if is_first_friday(date_obj) else 0
-                first_saturday = 1 if is_first_saturday(date_obj) else 0
-                hdo_flag = 1 if date_str in HDO_2026 else 0
+                if day_num < previous_day_num and not page_month:
+                    current_month = next_month_name(current_month)
+                previous_day_num = day_num
 
-                weekday_col = (date_obj.weekday() + 1) % 7 + 1
-                week_row = week_row_counter[current_month]
-                if weekday_col == 7:
-                    week_row_counter[current_month] += 1
+                try:
+                    date_obj = datetime.strptime(f"{year} {current_month} {day_num}", "%Y %B %d")
+                    date_str = date_obj.strftime("%Y-%m-%d")
+                except ValueError:
+                    continue
 
-                row = {
-                    "date": date_str,
-                    "feast_primary_name": feast_text_clean,
-                    "feast_rank": rank,
-                    "liturgical_color": color,
-                    "is_holy_day_of_obligation": hdo_flag,
-                    "us_holiday_name": "",
-                    "is_first_friday": first_friday,
-                    "is_first_saturday": first_saturday,
-                    "week_row": week_row,
-                    "weekday_col": weekday_col,
-                    "display_date_number": day_num,
-                    "belongs_to_month": 1,
-                    "source_page": page_num,
-                }
-                output_rows.append(row)
+                if previous_date_obj:
+                    delta = (date_obj - previous_date_obj).days
+                    for d in range(1, delta):
+                        missing_date_obj = previous_date_obj + timedelta(days=d)
+                        missing_date_str = missing_date_obj.strftime("%Y-%m-%d")
+                        missing_row = [
+                            missing_date_str,
+                            last_feast_name,
+                            last_rank,
+                            last_color,
+                            last_is_holy_day,
+                            last_us_holiday,
+                            last_is_first_friday,
+                            last_is_first_saturday,
+                            (missing_date_obj.day - 1) // 7 + 1,
+                            ((missing_date_obj.weekday() + 1) % 7) + 1,
+                            missing_date_obj.day,
+                            1,
+                            page_num + 1
+                        ]
+                        day_data.append(missing_row)
 
-    # Write CSV
-    fieldnames = [
-        "date","feast_primary_name","feast_rank","liturgical_color",
-        "is_holy_day_of_obligation","us_holiday_name",
-        "is_first_friday","is_first_saturday","week_row","weekday_col",
-        "display_date_number","belongs_to_month","source_page"
-    ]
+                previous_date_obj = date_obj
+                last_feast_name = feast.strip()
+                last_rank = rank
+                last_color = color.capitalize()
+                last_is_holy_day = 1 if date_str in holy_days else 0
+                last_us_holiday = us_holidays.get(date_str, "")
+                last_is_first_friday = 1 if ((date_obj.weekday() + 1) % 7 + 1 == 6 and day_num <= 7) else 0
+                last_is_first_saturday = 1 if ((date_obj.weekday() + 1) % 7 + 1 == 7 and day_num <= 7) else 0
+
+                weekday_num = date_obj.weekday()
+                weekday_col = ((weekday_num + 1) % 7) + 1
+                week_row = (day_num - 1) // 7 + 1
+
+                row = [
+                    date_str,
+                    feast.strip(),
+                    rank,
+                    color.capitalize(),
+                    last_is_holy_day,
+                    last_us_holiday,
+                    last_is_first_friday,
+                    last_is_first_saturday,
+                    week_row,
+                    weekday_col,
+                    day_num,
+                    1,
+                    page_num + 1
+                ]
+                day_data.append(row)
+
+            if skip_rest_of_page:
+                previous_date_obj = None
+                previous_day_num = 0
+                last_feast_name = ""
+                last_rank = ""
+                last_color = ""
+                last_is_holy_day = 0
+                last_us_holiday = ""
+                last_is_first_friday = 0
+                last_is_first_saturday = 0
+                continue
+
+    return day_data
+
+def extract_day_data_split(pdf_path: Path, output_csv: Path, year: int = 2026):
+    data1 = extract_day_data(pdf_path, year, start_page=12, end_page=22)
+    data2 = extract_day_data(pdf_path, year, start_page=21, end_page=None)
+    all_data = data1 + data2
+
+    # Deduplicate
+    seen = set()
+    unique_data = []
+    for row in all_data:
+        date_str = row[0]
+        if date_str not in seen:
+            seen.add(date_str)
+            unique_data.append(row)
+
+    # Auto add March 30-31
+    for day_num, feast_name in [(30, "Monday of Holy Week"), (31, "Tuesday of Holy Week")]:
+        date_obj = datetime(year, 3, day_num)
+        date_str = date_obj.strftime("%Y-%m-%d")
+        if date_str not in seen:
+            weekday_num = date_obj.weekday()
+            weekday_col = ((weekday_num + 1) % 7) + 1
+            week_row = (day_num - 1) // 7 + 1
+            row = [
+                date_str, feast_name, "", "violet", 0, "", 0, 0, week_row, weekday_col, day_num, 1, 23
+            ]
+            unique_data.append(row)
+            seen.add(date_str)
+
+    unique_data.sort(key=lambda r: datetime.strptime(r[0], "%Y-%m-%d"))
+
+    # Write day_data.csv
     with open(output_csv, "w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=fieldnames)
-        writer.writeheader()
-        writer.writerows(output_rows)
+        writer = csv.writer(f)
+        writer.writerow([
+            "date", "feast_primary_name", "feast_rank", "liturgical_color",
+            "is_holy_day_of_obligation", "us_holiday_name", "is_first_friday",
+            "is_first_saturday", "week_row", "weekday_col", "display_date_number",
+            "belongs_to_month", "source_page"
+        ])
+        writer.writerows(unique_data)
 
-    print(f"Completed: {len(output_rows)} rows written to {output_csv}")
-    return output_rows  # return rows for further processing
+    print(f"✅ DAY DATA rows → {output_csv}")
 
-# ----------------------------
-# Year-at-a-Glance
-# ----------------------------
-def generate_year_at_a_glance(day_rows, out_dir):
-    """Generate liturgical_calendar_2026_simple.csv from DAY_DATA"""
-    out_dir = Path(out_dir)
-    output_csv = out_dir / "liturgical_calendar_2026_simple.csv"
+# -------------------- LITURGICAL CALENDAR -------------------- #
 
-    # Sort by date
-    day_rows_sorted = sorted(day_rows, key=lambda x: x["date"])
-    simple_rows = []
-
-    for row in day_rows_sorted:
-        simple_row = {
-            "Date": row["date"],
-            "DayOfMonth": row["display_date_number"],
-            "DayOfWeek": datetime.strptime(row["date"], "%Y-%m-%d").strftime("%a"),
-            "LiturgicalColor": row["liturgical_color"]
-        }
-        simple_rows.append(simple_row)
-
-    fieldnames = ["Date", "DayOfMonth", "DayOfWeek", "LiturgicalColor"]
+def generate_liturgical_calendar(day_data, output_csv):
+    rows = []
+    for row in day_data:
+        date_obj = datetime.strptime(row[0], "%Y-%m-%d")
+        rows.append([row[0], date_obj.day, date_obj.strftime("%A"), row[3]])
     with open(output_csv, "w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=fieldnames)
-        writer.writeheader()
-        writer.writerows(simple_rows)
+        writer = csv.writer(f)
+        writer.writerow(["Date", "DayOfMonth", "DayOfWeek", "LiturgicalColor"])
+        writer.writerows(rows)
+    print(f"✅ Liturgical calendar saved: {output_csv}")
 
-    print(f"Completed: {len(simple_rows)} rows written to {output_csv}")
+# -------------------- MAJOR FEASTS -------------------- #
 
-# ----------------------------
-# Weekly index
-# ----------------------------
-def generate_weekly_index(day_rows, out_dir):
-    """
-    day_rows: list of dicts from DAY_DATA.csv (already parsed)
-    out_dir: folder to write weekly_index_2026.csv
-    """
-    out_dir = Path(out_dir)
-    out_dir.mkdir(parents=True, exist_ok=True)
-    output_csv = out_dir / "weekly_index_2026.csv"
+def extract_major_feasts(pdf_path: Path, output_csv: Path):
+    feasts = []
+    with pdfplumber.open(pdf_path) as pdf:
+        for page_num in [8, 9]:
+            page = pdf.pages[page_num]
+            lines = [line.strip() for line in page.extract_text().splitlines() if line.strip()]
+            current_date = ""
+            current_name = ""
+            for line in lines:
+                date_match = re.match(r"^(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{1,2})", line)
+                if date_match:
+                    if current_date and current_name:
+                        feasts.append([current_date, current_name, classify_feast(current_name)])
+                    current_date = f"{date_match.group(1)[:3]} {date_match.group(2)}"
+                    current_name = line[date_match.end():].strip(" ,*")
+                else:
+                    if line.lower().startswith(("sunday", "fourth thursday")):
+                        continue
+                    current_name += " " + line.strip(" ,*")
+            if current_date and current_name:
+                feasts.append([current_date, current_name, classify_feast(current_name)])
 
-    # Define liturgical seasons (start and end dates)
-    SEASONS = [
-        ("Advent", datetime(2025, 11, 30), datetime(2025, 12, 24)),
-        ("Christmas", datetime(2025, 12, 25), datetime(2026, 1, 5)),
-        ("Ordinary Time", datetime(2026, 1, 6), datetime(2026, 2, 16)),  # up to Ash Wednesday
-        ("Lent", datetime(2026, 2, 17), datetime(2026, 4, 4)),  # Ash Wed → Holy Saturday
-        ("Easter", datetime(2026, 4, 5), datetime(2026, 5, 23)),  # Easter Sunday → Pentecost
-        ("Ordinary Time", datetime(2026, 5, 24), datetime(2026, 11, 28)),  # after Pentecost → Advent
-        ("Advent", datetime(2026, 11, 29), datetime(2026, 12, 24)),
-    ]
+    with open(output_csv, "w", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        writer.writerow(["FeastDate", "FeastName", "Category"])
+        writer.writerows(feasts)
+    print(f"✅ Major feasts saved: {output_csv}")
 
-    # Sort day_rows by date
-    day_rows_sorted = sorted(day_rows, key=lambda r: datetime.strptime(r["date"], "%Y-%m-%d"))
+# -------------------- WEEKLY INDEX -------------------- #
 
-    # Prepare weekly index
-    weekly_index = []
-    season_week_counters = {}  # count weeks per season
-    seen_weeks = set()
+def generate_weekly_index(day_data, output_csv):
+    import csv
+    from datetime import datetime, timedelta
 
-    for row in day_rows_sorted:
-        date_obj = datetime.strptime(row["date"], "%Y-%m-%d")
-        # Calculate week start (Monday) and week end (Sunday)
-        week_start = date_obj - timedelta(days=date_obj.weekday())  # Monday
+    # Compute liturgical season and week label
+    def easter_date(year):
+        # Anonymous Gregorian algorithm
+        a = year % 19
+        b = year // 100
+        c = year % 100
+        d = b // 4
+        e = b % 4
+        f = (b + 8) // 25
+        g = (b - f + 1) // 3
+        h = (19*a + b - d - g + 15) % 30
+        i = c // 4
+        k = c % 4
+        l = (32 + 2*e + 2*i - h - k) % 7
+        m = (a + 11*h + 22*l) // 451
+        month = (h + l - 7*m + 114) // 31
+        day = ((h + l - 7*m + 114) % 31) + 1
+        return datetime(year, month, day)
+
+    year = 2026
+    easter = easter_date(year)
+    ash_wednesday = easter - timedelta(days=46)
+    pentecost = easter + timedelta(days=49)
+    christmas = datetime(year, 12, 25)
+    advent_start = christmas - timedelta(days=(christmas.weekday() + 22))  # 4 Sundays before Christmas
+    baptism_of_lord = datetime(year, 1, 11)
+
+    weeks = {}
+    for row in day_data:
+        date_obj = datetime.strptime(row[0], "%Y-%m-%d")
+        week_start = date_obj - timedelta(days=date_obj.weekday())
         week_end = week_start + timedelta(days=6)
-
-        # Skip duplicate weeks
-        week_key = week_start.strftime("%Y-%m-%d")
-        if week_key in seen_weeks:
+        key = week_start.strftime("%Y-%m-%d")
+        if key in weeks:
             continue
-        seen_weeks.add(week_key)
 
         # Determine season
-        season_name = "Ordinary Time"
-        for season, start, end in SEASONS:
-            if start <= date_obj <= end:
-                season_name = season
-                break
-
-        # Increment week count per season for liturgical week label
-        if season_name not in season_week_counters:
-            season_week_counters[season_name] = 1
+        if week_start >= advent_start and week_start <= christmas:
+            season = "Advent"
+        elif week_start >= datetime(year, 12, 25) and week_start <= datetime(year + 1, 1, 9):
+            season = "Christmas"
+        elif week_start >= datetime(year, 1, 5) and week_start < ash_wednesday:
+            season = "Ordinary Time"
+        elif week_start >= ash_wednesday and week_start < easter:
+            season = "Lent"
+        elif week_start >= easter and week_start <= pentecost:
+            season = "Easter"
         else:
-            season_week_counters[season_name] += 1
-        liturgical_week_label = f"{season_week_counters[season_name]}{'st' if season_week_counters[season_name]==1 else 'nd' if season_week_counters[season_name]==2 else 'rd' if season_week_counters[season_name]==3 else 'th'} Week of {season_name}"
+            season = "Ordinary Time"
 
-        week_label = f"Week of {week_start.strftime('%b')} {week_start.day}–{week_end.day}"
+        # Week number in season
+        season_weeks = [w for w in weeks.values() if w["Season"] == season]
+        lit_week_num = len(season_weeks) + 1
+        lit_week_label = f"Week {lit_week_num} of {season}"
 
-        weekly_index.append({
+        # Correct WeekLabel with full month/day for start and end
+        week_label = f"Week of {week_start.strftime('%b %d')}-{week_end.strftime('%b %d')}"
+
+        weeks[key] = {
             "WeekStart": week_start.strftime("%Y-%m-%d"),
             "WeekEnd": week_end.strftime("%Y-%m-%d"),
             "WeekLabel": week_label,
-            "LiturgicalWeekLabel": liturgical_week_label,
-            "Season": season_name,
+            "LiturgicalWeekLabel": lit_week_label,
+            "Season": season,
             "MonthForMiniCal": week_start.strftime("%Y-%m"),
             "WeekNumberInYear": week_start.isocalendar()[1]
-        })
+        }
 
-    # Write CSV
-    fieldnames = ["WeekStart", "WeekEnd", "WeekLabel", "LiturgicalWeekLabel", "Season", "MonthForMiniCal", "WeekNumberInYear"]
+    # Sort weeks by start date
+    sorted_weeks = sorted(weeks.values(), key=lambda x: x["WeekStart"])
+
+    # Write to CSV
     with open(output_csv, "w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer = csv.DictWriter(f, fieldnames=list(sorted_weeks[0].keys()))
         writer.writeheader()
-        writer.writerows(weekly_index)
+        writer.writerows(sorted_weeks)
 
-    print(f"Completed: {len(weekly_index)} rows written to {output_csv}")
-
-
-
-# ----------------------------
-# Bible Citations Extraction
-# ----------------------------
-def extract_bible_citation(text):
-    """Extract short Bible citation from a line"""
-    pattern = r"\b(?:[1-3]?\s?[A-Za-z]+)\s\d{1,3}:\d{1,3}(?:–\d{1,3})?(?:;\s?[1-3]?\s?[A-Za-z]+\s\d{1,3}:\d{1,3}(?:–\d{1,3})?)*"
-    match = re.search(pattern, text)
-    if match:
-        return match.group(0)
-    return ""
+    print(f"✅ Weekly index saved: {output_csv}")
 
 
-def parse_bible_citations(pdf_file, year, out_dir):
-    """Parse Bible citations from the liturgical calendar PDF"""
-    out_dir = Path(out_dir)
-    out_dir.mkdir(parents=True, exist_ok=True)
-    output_csv = out_dir / "daily_bible_citations_2026.csv"
 
-    MONTHS = {name.lower(): i for i, name in enumerate(calendar.month_name) if name}
-    output_rows = []
-    current_month = None
+# -------------------- DAILY BIBLE CITATIONS -------------------- #
 
-    with pdfplumber.open(pdf_file) as pdf:
-        for page_num, page in enumerate(pdf.pages, start=1):
-            text = page.extract_text()
-            if not text:
-                continue
-            lines = text.split("\n")
-
-            for line in lines:
+def extract_daily_bible_citations(pdf_path: Path, output_csv: Path, year=2026):
+    citations = []
+    with pdfplumber.open(pdf_path) as pdf:
+        for page_num in range(13, len(pdf.pages)):
+            page = pdf.pages[page_num]
+            for line in page.extract_text().splitlines():
                 line = line.strip()
-                if not line:
-                    continue
+                # Detect Bible citation
+                match = re.search(r"([A-Z][a-z]{0,2}\s\d{1,3}:\d{1,2}(?:–\d{1,2})?)", line)
+                if match:
+                    # Attempt to infer date from page number
+                    # Assuming each page corresponds roughly to day sequence
+                    date_obj = datetime(year, 1, 1) + timedelta(days=(page_num-13))
+                    date_str = date_obj.strftime("%Y-%m-%d")
+                    citations.append([date_str, match.group(1), line])
 
-                # Detect month header
-                for month_name, month_num in MONTHS.items():
-                    if month_name in line.lower():
-                        current_month = month_num
-                        break
-                if current_month is None:
-                    continue
-
-                # Detect date line (e.g., "1 Tue" or "12 Fri")
-                m = re.match(r"^(\d{1,2})\s+\w{3}", line)
-                if not m:
-                    continue
-                day_num = int(m.group(1))
-
-                try:
-                    date_obj = datetime(year, current_month, day_num)
-                except ValueError:
-                    continue  # skip invalid dates
-
-                # Extract Bible citation
-                citation = extract_bible_citation(line)
-                if citation:
-                    row = {
-                        "Date": date_obj.strftime("%Y-%m-%d"),
-                        "BibleCitationShort": citation,
-                        "SourceLine": line
-                    }
-                    output_rows.append(row)
-
-    # Write CSV
-    fieldnames = ["Date", "BibleCitationShort", "SourceLine"]
     with open(output_csv, "w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=fieldnames)
-        writer.writeheader()
-        writer.writerows(output_rows)
+        writer = csv.writer(f)
+        writer.writerow(["Date", "BibleCitationShort", "SourceLine"])
+        writer.writerows(citations)
+    print(f"✅ Daily Bible citations saved: {output_csv}")
 
-    print(f"Completed: {len(output_rows)} rows written to {output_csv}")
+# -------------------- US HOLIDAYS -------------------- #
 
-
-def parse_us_holidays(pdf_file, year, out_dir):
-    """
-    Extract US holidays from the PDF and write to CSV.
-    """
-    US_HOLIDAYS = {
-        "New Year’s Day": f"{year}-01-01",
-        "Martin Luther King Jr. Day": f"{year}-01-19",
-        "Washington’s Birthday": f"{year}-02-16",
-        "Memorial Day": f"{year}-05-25",
-        "Independence Day": f"{year}-07-04",
-        "Labor Day": f"{year}-09-07",
-        "Columbus Day": f"{year}-10-12",
-        "Veterans Day": f"{year}-11-11",
-        "Thanksgiving Day": f"{year}-11-26",
-        "Christmas Day": f"{year}-12-25",
-    }
-
-    out_dir = Path(out_dir)
-    out_dir.mkdir(parents=True, exist_ok=True)
-    output_csv = out_dir / f"us_holidays_{year}.csv"
-
-    found = []
-    with pdfplumber.open(pdf_file) as pdf:
-        for i, page in enumerate(pdf.pages, start=1):
-            text = page.extract_text()
-            if not text:
-                continue
-            for holiday, fixed_date in US_HOLIDAYS.items():
-                if holiday in text:
-                    for line in text.splitlines():
-                        if holiday in line:
-                            date_match = re.search(r"(\d{1,2}/\d{1,2}/\d{4})", line)
-                            if date_match:
-                                date_str = date_match.group(1)
-                                date = datetime.strptime(date_str, "%m/%d/%Y").strftime("%Y-%m-%d")
-                            else:
-                                date = fixed_date
-                            found.append({
-                                "Date": date,
-                                "HolidayName": holiday,
-                                "IsFederalHoliday": 1
-                            })
-
-    # Write CSV
-    fieldnames = ["Date", "HolidayName", "IsFederalHoliday"]
+def generate_us_holidays(day_data, output_csv):
+    rows = []
+    for row in day_data:
+        if row[5]:
+            rows.append([row[0], row[5], 1])
     with open(output_csv, "w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=fieldnames)
-        writer.writeheader()
-        writer.writerows(found)
+        writer = csv.writer(f)
+        writer.writerow(["Date", "HolidayName", "IsFederalHoliday"])
+        writer.writerows(rows)
+    print(f"✅ US holidays saved: {output_csv}")
 
-    print(f"Completed: {len(found)} holidays written to {output_csv}")
-    return found
+# -------------------- MAIN -------------------- #
 
-
-
-# ----------------------------
-# CLI
-# ----------------------------
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Build 2026 liturgical CSVs")
-    parser.add_argument("year", type=int, help="Year to build (2026)")
-    parser.add_argument("--input-pdf", required=True, help="Input PDF file")
-    parser.add_argument("--out", default="data/", help="Output folder for CSV")
+def main():
+    parser = argparse.ArgumentParser(description="Extract multiple liturgical calendar datasets")
+    parser.add_argument("--input-pdf", required=True)
+    parser.add_argument("--out-dir", required=True)
+    parser.add_argument("--year", type=int, default=2026)
     args = parser.parse_args()
 
-    day_rows = parse_day_data(args.input_pdf, args.year, args.out)
-    generate_year_at_a_glance(day_rows, args.out)
-    generate_weekly_index(day_rows, args.out)
+    out_dir = Path(args.out_dir)
+    out_dir.mkdir(exist_ok=True, parents=True)
 
-    # Always generate Bible citations too
-    parse_bible_citations(args.input_pdf, args.year, args.out)
+    day_data_csv = out_dir / "day_data.csv"
+    extract_day_data_split(Path(args.input_pdf), day_data_csv, args.year)
 
-    # Always generate US holidays too
-    parse_us_holidays(args.input_pdf, args.year, args.out)
+    day_data = []
+    with open(day_data_csv, newline="", encoding="utf-8") as f:
+        reader = csv.reader(f)
+        next(reader)
+        for row in reader:
+            day_data.append(row)
+
+    generate_liturgical_calendar(day_data, out_dir / "liturgical_calendar_2026_simple.csv")
+    extract_major_feasts(Path(args.input_pdf), out_dir / "major_feasts_2026.csv")
+    generate_weekly_index(day_data, out_dir / "weekly_index_2026.csv")
+    extract_daily_bible_citations(Path(args.input_pdf), out_dir / "daily_bible_citations_2026.csv", args.year)
+    generate_us_holidays(day_data, out_dir / "us_holidays_2026.csv")
+
+if __name__ == "__main__":
+    main()
