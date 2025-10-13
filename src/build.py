@@ -4,6 +4,8 @@ import argparse
 import pdfplumber
 from pathlib import Path
 from datetime import datetime, timedelta
+from src.utils.daily_bible_citation import extract_daily_bible_citations
+
 
 # -------------------- HELPER FUNCTIONS -------------------- #
 
@@ -365,80 +367,6 @@ def generate_weekly_index(day_data, output_csv):
     print(f"✅ Weekly index saved: {output_csv}")
 
 
-
-# -------------------- DAILY BIBLE CITATIONS -------------------- #
-
-def extract_daily_bible_citations(pdf_path: Path, day_data_csv: Path, output_csv: Path, year=2026):
-    import re
-    from datetime import datetime
-    import csv
-
-    # Load day_data for mapping dates
-    day_map = []
-    with open(day_data_csv, newline="", encoding="utf-8") as f:
-        reader = csv.reader(f)
-        next(reader)
-        for row in reader:
-            day_map.append(row[0])  # YYYY-MM-DD
-
-    citations = []
-    current_day_idx = 0
-
-    # Regex for lines ending with liturgical color
-    color_line_regex = re.compile(
-        r".+\s+(white|red|green|violet|black|rose|gold(?:/(?:white|red|green|violet|black|rose|gold))*)$",
-        re.IGNORECASE
-    )
-
-    # Regex for Bible citations (allow en dash)
-    bible_citation_regex = re.compile(
-        r"[1-3]?\s?[A-Z][a-z]{0,2}\s\d{1,3}:\d{1,2}(?:[–-]\d{1,2})?"
-    )
-
-    with pdfplumber.open(pdf_path) as pdf:
-        for page_num in range(13, len(pdf.pages)):
-            page = pdf.pages[page_num]
-            text = page.extract_text()
-            if not text:
-                continue
-            lines = [line.strip() for line in text.splitlines() if line.strip()]
-            collect_citations = False
-            current_date_str = None
-
-            for line in lines:
-                # Step 1: detect a new date line by color line
-                if color_line_regex.match(line):
-                    if current_day_idx < len(day_map):
-                        current_date_str = day_map[current_day_idx]
-                        current_day_idx += 1
-                        collect_citations = True  # next lines are citations
-                    else:
-                        current_date_str = None
-                        collect_citations = False
-                    continue
-
-                # Step 2: collect Bible citations only after a color line
-                if collect_citations and current_date_str:
-                    # Stop collecting if a new color line is found
-                    if color_line_regex.match(line):
-                        collect_citations = True  # already handled above
-                        continue
-                    # Extract citations from this line
-                    for citation in bible_citation_regex.findall(line):
-                        citations.append([current_date_str, citation, line])
-
-    # Write output CSV (Windows-safe)
-    output_csv_str = str(output_csv)
-    with open(output_csv_str, "w", newline="", encoding="utf-8") as f:
-        writer = csv.writer(f)
-        writer.writerow(["Date", "BibleCitationShort", "SourceLine"])
-        writer.writerows(citations)
-
-    print(f"✅ Daily Bible citations saved: {output_csv} ({len(citations)} rows)")
-
-
-
-
 # -------------------- US HOLIDAYS -------------------- #
 
 def generate_us_holidays(day_data, output_csv):
@@ -456,17 +384,38 @@ def generate_us_holidays(day_data, output_csv):
 
 def main():
     parser = argparse.ArgumentParser(description="Extract multiple liturgical calendar datasets")
-    parser.add_argument("--input-pdf", required=True)
-    parser.add_argument("--out-dir", required=True)
     parser.add_argument("year", type=int, default=2026)
+    parser.add_argument("--input-pdf", required=True, help="Path to cleaned USCCB Feast Calendar PDF")
+    parser.add_argument("--out-dir", required=True, help="Output directory for generated CSV files")
     args = parser.parse_args()
 
+    year = args.year
+    pdf_path = Path(args.input_pdf)
     out_dir = Path(args.out_dir)
     out_dir.mkdir(exist_ok=True, parents=True)
 
+    # Define output paths
     day_data_csv = out_dir / "day_data.csv"
-    extract_day_data_split(Path(args.input_pdf), day_data_csv, args.year)
+    bible_citations_csv = out_dir / f"daily_bible_citations_{year}.csv"
+    liturgical_calendar_csv = out_dir / f"liturgical_calendar_{year}_simple.csv"
+    major_feasts_csv = out_dir / f"major_feasts_{year}.csv"
+    weekly_index_csv = out_dir / f"weekly_index_{year}.csv"
+    us_holidays_csv = out_dir / f"us_holidays_{year}.csv"
 
+    print("\n==============================")
+    print(f"📘 LITURGICAL CALENDAR BUILDER ({year})")
+    print("==============================\n")
+
+    # 1️⃣ Extract and build the DAY DATA
+    print("🔍 Step 1: Extracting day data...")
+    extract_day_data_split(pdf_path, day_data_csv, year)
+
+    # 2️⃣ Use the day data to extract Bible citations
+    print("📖 Step 2: Extracting daily Bible citations...")
+    extract_daily_bible_citations(pdf_path, bible_citations_csv)
+
+    # 3️⃣ Load the day data into memory for other outputs
+    print("📅 Step 3: Loading day data for dependent outputs...")
     day_data = []
     with open(day_data_csv, newline="", encoding="utf-8") as f:
         reader = csv.reader(f)
@@ -474,11 +423,24 @@ def main():
         for row in reader:
             day_data.append(row)
 
-    generate_liturgical_calendar(day_data, out_dir / "liturgical_calendar_2026_simple.csv")
-    extract_major_feasts(Path(args.input_pdf), out_dir / "major_feasts_2026.csv")
-    generate_weekly_index(day_data, out_dir / "weekly_index_2026.csv")
-    extract_daily_bible_citations(Path(args.input_pdf), out_dir / "daily_bible_citations_2026.csv", args.year)
-    generate_us_holidays(day_data, out_dir / "us_holidays_2026.csv")
+    # 4️⃣ Generate simplified liturgical calendar
+    print("🌈 Step 4: Generating simple liturgical calendar...")
+    generate_liturgical_calendar(day_data, liturgical_calendar_csv)
+
+    # 5️⃣ Extract major feasts
+    print("⭐ Step 5: Extracting major feasts...")
+    extract_major_feasts(pdf_path, major_feasts_csv)
+
+    # 6️⃣ Generate weekly index
+    print("📆 Step 6: Generating weekly index...")
+    generate_weekly_index(day_data, weekly_index_csv)
+
+    # 7️⃣ Generate US holidays
+    print("🇺🇸 Step 7: Generating US holidays...")
+    generate_us_holidays(day_data, us_holidays_csv)
+
+    print("\n✅ All datasets generated successfully!")
+    print(f"📂 Output folder: {out_dir.resolve()}")
 
 if __name__ == "__main__":
     main()
