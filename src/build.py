@@ -27,7 +27,7 @@ def classify_feast(name):
     elif any(x in name_lower for x in ["lord", "epiphany", "corpus christi", "christ"]):
         return "Solemnities of the Lord"
     else:
-        return "Major Saints
+        return "Major Saints"
 
 # -------------------- DAY DATA EXTRACTION -------------------- #
 
