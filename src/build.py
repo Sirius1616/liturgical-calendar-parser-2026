@@ -368,27 +368,76 @@ def generate_weekly_index(day_data, output_csv):
 
 # -------------------- DAILY BIBLE CITATIONS -------------------- #
 
-def extract_daily_bible_citations(pdf_path: Path, output_csv: Path, year=2026):
+def extract_daily_bible_citations(pdf_path: Path, day_data_csv: Path, output_csv: Path, year=2026):
+    import re
+    from datetime import datetime
+    import csv
+
+    # Load day_data for mapping dates
+    day_map = []
+    with open(day_data_csv, newline="", encoding="utf-8") as f:
+        reader = csv.reader(f)
+        next(reader)
+        for row in reader:
+            day_map.append(row[0])  # YYYY-MM-DD
+
     citations = []
+    current_day_idx = 0
+
+    # Regex for lines ending with liturgical color
+    color_line_regex = re.compile(
+        r".+\s+(white|red|green|violet|black|rose|gold(?:/(?:white|red|green|violet|black|rose|gold))*)$",
+        re.IGNORECASE
+    )
+
+    # Regex for Bible citations (allow en dash)
+    bible_citation_regex = re.compile(
+        r"[1-3]?\s?[A-Z][a-z]{0,2}\s\d{1,3}:\d{1,2}(?:[–-]\d{1,2})?"
+    )
+
     with pdfplumber.open(pdf_path) as pdf:
         for page_num in range(13, len(pdf.pages)):
             page = pdf.pages[page_num]
-            for line in page.extract_text().splitlines():
-                line = line.strip()
-                # Detect Bible citation
-                match = re.search(r"([A-Z][a-z]{0,2}\s\d{1,3}:\d{1,2}(?:–\d{1,2})?)", line)
-                if match:
-                    # Attempt to infer date from page number
-                    # Assuming each page corresponds roughly to day sequence
-                    date_obj = datetime(year, 1, 1) + timedelta(days=(page_num-13))
-                    date_str = date_obj.strftime("%Y-%m-%d")
-                    citations.append([date_str, match.group(1), line])
+            text = page.extract_text()
+            if not text:
+                continue
+            lines = [line.strip() for line in text.splitlines() if line.strip()]
+            collect_citations = False
+            current_date_str = None
 
-    with open(output_csv, "w", newline="", encoding="utf-8") as f:
+            for line in lines:
+                # Step 1: detect a new date line by color line
+                if color_line_regex.match(line):
+                    if current_day_idx < len(day_map):
+                        current_date_str = day_map[current_day_idx]
+                        current_day_idx += 1
+                        collect_citations = True  # next lines are citations
+                    else:
+                        current_date_str = None
+                        collect_citations = False
+                    continue
+
+                # Step 2: collect Bible citations only after a color line
+                if collect_citations and current_date_str:
+                    # Stop collecting if a new color line is found
+                    if color_line_regex.match(line):
+                        collect_citations = True  # already handled above
+                        continue
+                    # Extract citations from this line
+                    for citation in bible_citation_regex.findall(line):
+                        citations.append([current_date_str, citation, line])
+
+    # Write output CSV (Windows-safe)
+    output_csv_str = str(output_csv)
+    with open(output_csv_str, "w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
         writer.writerow(["Date", "BibleCitationShort", "SourceLine"])
         writer.writerows(citations)
-    print(f"✅ Daily Bible citations saved: {output_csv}")
+
+    print(f"✅ Daily Bible citations saved: {output_csv} ({len(citations)} rows)")
+
+
+
 
 # -------------------- US HOLIDAYS -------------------- #
 
@@ -409,7 +458,7 @@ def main():
     parser = argparse.ArgumentParser(description="Extract multiple liturgical calendar datasets")
     parser.add_argument("--input-pdf", required=True)
     parser.add_argument("--out-dir", required=True)
-    parser.add_argument("--year", type=int, default=2026)
+    parser.add_argument("year", type=int, default=2026)
     args = parser.parse_args()
 
     out_dir = Path(args.out_dir)
